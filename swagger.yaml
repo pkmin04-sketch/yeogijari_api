@@ -1,718 +1,2167 @@
 ---
-swagger: "2.0"
+openapi: 3.1.0
 info:
-  description: "This is a sample server Petstore server.  You can find out more about\
-    \ Swagger at [http://swagger.io](http://swagger.io) or on [irc.freenode.net, #swagger](http://swagger.io/irc/).\
-    \  For this sample, you can use the api key `special-key` to test the authorization\
-    \ filters."
-  version: "1.0.5"
-  title: "Swagger Petstore"
-  termsOfService: "http://swagger.io/terms/"
-  contact:
-    email: "apiteam@swagger.io"
-  license:
-    name: "Apache 2.0"
-    url: "http://www.apache.org/licenses/LICENSE-2.0.html"
-host: "petstore.swagger.io"
-basePath: "/v2"
-tags:
-- name: "pet"
-  description: "Everything about your Pets"
-  externalDocs:
-    description: "Find out more"
-    url: "http://swagger.io"
-- name: "store"
-  description: "Access to Petstore orders"
-- name: "user"
-  description: "Operations about user"
-  externalDocs:
-    description: "Find out more about our store"
-    url: "http://swagger.io"
-schemes:
-- "https"
-- "http"
+  title: KOREA 예약정보 관리 API
+  description: 관리자 테스트용 API. 시간은 UTC Unix 초이며, 실제 착석자 인증은 하지 않습니다.
+  version: 1.11.0
 paths:
-  /pet/{petId}/uploadImage:
-    post:
-      tags:
-      - "pet"
-      summary: "uploads an image"
-      description: ""
-      operationId: "uploadFile"
-      consumes:
-      - "multipart/form-data"
-      produces:
-      - "application/json"
-      parameters:
-      - name: "petId"
-        in: "path"
-        description: "ID of pet to update"
-        required: true
-        type: "integer"
-        format: "int64"
-      - name: "additionalMetadata"
-        in: "formData"
-        description: "Additional data to pass to server"
-        required: false
-        type: "string"
-      - name: "file"
-        in: "formData"
-        description: "file to upload"
-        required: false
-        type: "file"
-      responses:
-        200:
-          description: "successful operation"
-          schema:
-            $ref: "#/definitions/ApiResponse"
-      security:
-      - petstore_auth:
-        - "write:pets"
-        - "read:pets"
-  /pet:
-    post:
-      tags:
-      - "pet"
-      summary: "Add a new pet to the store"
-      description: ""
-      operationId: "addPet"
-      consumes:
-      - "application/json"
-      - "application/xml"
-      produces:
-      - "application/json"
-      - "application/xml"
-      parameters:
-      - in: "body"
-        name: "body"
-        description: "Pet object that needs to be added to the store"
-        required: true
-        schema:
-          $ref: "#/definitions/Pet"
-      responses:
-        405:
-          description: "Invalid input"
-      security:
-      - petstore_auth:
-        - "write:pets"
-        - "read:pets"
-    put:
-      tags:
-      - "pet"
-      summary: "Update an existing pet"
-      description: ""
-      operationId: "updatePet"
-      consumes:
-      - "application/json"
-      - "application/xml"
-      produces:
-      - "application/json"
-      - "application/xml"
-      parameters:
-      - in: "body"
-        name: "body"
-        description: "Pet object that needs to be added to the store"
-        required: true
-        schema:
-          $ref: "#/definitions/Pet"
-      responses:
-        400:
-          description: "Invalid ID supplied"
-        404:
-          description: "Pet not found"
-        405:
-          description: "Validation exception"
-      security:
-      - petstore_auth:
-        - "write:pets"
-        - "read:pets"
-  /pet/findByStatus:
+  "/health":
     get:
       tags:
-      - "pet"
-      summary: "Finds Pets by status"
-      description: "Multiple status values can be provided with comma separated strings"
-      operationId: "findPetsByStatus"
-      produces:
-      - "application/json"
-      - "application/xml"
+      - 서버 상태
+      summary: Health
+      operationId: health_health_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '422':
+          description: Unprocessable Content
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '503':
+          description: Service Unavailable
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+  "/floors":
+    get:
+      tags:
+      - 위치·좌석 조회
+      summary: Floors
+      operationId: floors_floors_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                items:
+                  "$ref": "#/components/schemas/Floor"
+                type: array
+                title: Response Floors Floors Get
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '422':
+          description: Unprocessable Content
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '503':
+          description: Service Unavailable
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+  "/rooms":
+    get:
+      tags:
+      - 위치·좌석 조회
+      summary: Rooms
+      operationId: rooms_rooms_get
       parameters:
-      - name: "status"
-        in: "query"
-        description: "Status values that need to be considered for filter"
+      - name: floor_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+            maximum: 9223372036854776000
+            exclusiveMinimum: 0
+          - type: 'null'
+          title: Floor Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  "$ref": "#/components/schemas/Room"
+                title: Response Rooms Rooms Get
+        '404':
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+          description: Not Found
+        '409':
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+          description: Conflict
+        '422':
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+          description: Unprocessable Content
+        '503':
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+          description: Service Unavailable
+  "/seats":
+    get:
+      tags:
+      - 위치·좌석 조회
+      summary: Seats
+      operationId: seats_seats_get
+      parameters:
+      - name: floor_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+            maximum: 9223372036854776000
+            exclusiveMinimum: 0
+          - type: 'null'
+          title: Floor Id
+      - name: room_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+            maximum: 9223372036854776000
+            exclusiveMinimum: 0
+          - type: 'null'
+          title: Room Id
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 500
+          minimum: 1
+          default: 100
+          title: Limit
+      - name: offset
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+          title: Offset
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  "$ref": "#/components/schemas/Seat"
+                title: Response Seats Seats Get
+        '404':
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+          description: Not Found
+        '409':
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+          description: Conflict
+        '422':
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+          description: Unprocessable Content
+        '503':
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+          description: Service Unavailable
+  "/seats/{seat_id}":
+    get:
+      tags:
+      - 위치·좌석 조회
+      summary: Seat
+      operationId: seat_seats__seat_id__get
+      parameters:
+      - name: seat_id
+        in: path
         required: true
-        type: "array"
-        items:
-          type: "string"
+        schema:
+          type: integer
+          maximum: 9223372036854776000
+          exclusiveMinimum: 0
+          title: Seat Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Seat"
+        '404':
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+          description: Not Found
+        '409':
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+          description: Conflict
+        '422':
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+          description: Unprocessable Content
+        '503':
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+          description: Service Unavailable
+  "/reservations":
+    post:
+      tags:
+      - 예약 등록·변경
+      summary: 현재 시각부터 예약 등록
+      description: 학번 로그인이 필요합니다. 본인 활성 예약이 있으면 추가 예약을 거부합니다.
+      operationId: create_reservation_reservations_post
+      security:
+      - DemoSession: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/ReservationCreate"
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Reservation"
+        '401':
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+          description: Unauthorized
+        '404':
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+          description: Not Found
+        '409':
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+          description: Conflict
+        '422':
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+          description: Unprocessable Content
+        '503':
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+          description: Service Unavailable
+    get:
+      tags:
+      - 예약 조회
+      summary: 예약 목록 및 좌석별 이력 조회
+      description: 현재 상태 필터를 적용하며 최신 예약부터 반환합니다. 검색 결과가 없으면 빈 배열입니다.
+      operationId: reservations_reservations_get
+      parameters:
+      - name: seat_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+            maximum: 9223372036854776000
+            exclusiveMinimum: 0
+          - type: 'null'
+          title: Seat Id
+      - name: effective_status
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - enum:
+            - SCHEDULED
+            - IN_USE
+            - ENDED
+            - CANCELLED
+            type: string
+          - type: 'null'
+          title: Effective Status
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 500
+          minimum: 1
+          default: 100
+          title: Limit
+      - name: offset
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+          title: Offset
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  "$ref": "#/components/schemas/Reservation"
+                title: Response Reservations Reservations Get
+        '404':
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+          description: Not Found
+        '409':
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+          description: Conflict
+        '422':
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+          description: Unprocessable Content
+        '503':
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+          description: Service Unavailable
+  "/reservations/{reservation_id}":
+    get:
+      tags:
+      - 예약 조회
+      summary: 예약 상세와 현재 이용 상태 조회
+      operationId: get_reservation_reservations__reservation_id__get
+      parameters:
+      - name: reservation_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          maximum: 9223372036854776000
+          exclusiveMinimum: 0
+          title: Reservation Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Reservation"
+        '404':
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+          description: Not Found
+        '409':
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+          description: Conflict
+        '422':
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+          description: Unprocessable Content
+        '503':
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+          description: Service Unavailable
+    patch:
+      tags:
+      - 예약 등록·변경
+      summary: 시작 시각부터의 총 이용시간 변경
+      description: def_time을 총 이용시간(초)으로 교체합니다. 시작·확정 시각은 변경하지 않습니다.
+      operationId: edit_reservation_reservations__reservation_id__patch
+      parameters:
+      - name: reservation_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          maximum: 9223372036854776000
+          exclusiveMinimum: 0
+          title: Reservation Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/ReservationEdit"
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Reservation"
+        '404':
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+          description: Not Found
+        '409':
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+          description: Conflict
+        '422':
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+          description: Unprocessable Content
+        '503':
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+          description: Service Unavailable
+  "/reservations/{reservation_id}/extend":
+    post:
+      tags:
+      - 예약 등록·변경
+      summary: 기존 예약에 이용시간 추가
+      description: additional_seconds를 더합니다. 반복 호출하면 매번 시간이 추가됩니다.
+      operationId: extend_reservation_reservations__reservation_id__extend_post
+      parameters:
+      - name: reservation_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          maximum: 9223372036854776000
+          exclusiveMinimum: 0
+          title: Reservation Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/ReservationExtend"
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Reservation"
+        '404':
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+          description: Not Found
+        '409':
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+          description: Conflict
+        '422':
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+          description: Unprocessable Content
+        '503':
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+          description: Service Unavailable
+  "/reservations/{reservation_id}/move":
+    post:
+      tags:
+      - 예약 등록·변경
+      summary: 좌석 이동
+      description: 이용 중인 예약의 좌석만 바꿉니다. 남은 시간의 예약 충돌을 검사하며, 시간·착석 상태는 유지합니다.
+      operationId: move_reservation_reservations__reservation_id__move_post
+      parameters:
+      - name: reservation_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          maximum: 9223372036854776000
+          exclusiveMinimum: 0
+          title: Reservation Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/ReservationMove"
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Reservation"
+        '404':
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+          description: Not Found
+        '409':
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+          description: Conflict
+        '422':
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+          description: Unprocessable Content
+        '503':
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+          description: Service Unavailable
+  "/reservations/{reservation_id}/cancel":
+    post:
+      tags:
+      - 예약 등록·변경
+      summary: 예약 취소
+      description: 같은 취소를 반복하면 기존 결과를 반환합니다. 자연 만료한 예약은 취소할 수 없습니다.
+      operationId: cancel_reservation_reservations__reservation_id__cancel_post
+      parameters:
+      - name: reservation_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          maximum: 9223372036854776000
+          exclusiveMinimum: 0
+          title: Reservation Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Reservation"
+        '404':
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+          description: Not Found
+        '409':
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+          description: Conflict
+        '422':
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+          description: Unprocessable Content
+        '503':
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+          description: Service Unavailable
+  "/reservations/{reservation_id}/end":
+    post:
+      tags:
+      - 예약 등록·변경
+      summary: 예약 조기 종료
+      description: 같은 종료를 반복하면 기존 결과를 반환합니다. 착석 상태는 변경하지 않습니다.
+      operationId: end_reservation_reservations__reservation_id__end_post
+      parameters:
+      - name: reservation_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          maximum: 9223372036854776000
+          exclusiveMinimum: 0
+          title: Reservation Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Reservation"
+        '404':
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+          description: Not Found
+        '409':
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+          description: Conflict
+        '422':
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+          description: Unprocessable Content
+        '503':
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+          description: Service Unavailable
+  "/auth/register":
+    post:
+      tags:
+      - 사용자 등록·인증
+      summary: 학번·이름·단과대학·학과 별도 등록
+      description: 로그인 세션을 만들지 않습니다. 기존 사용자 중 프로필이 없는 학번도 한 번 등록할 수 있습니다.
+      operationId: register_auth_register_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/UserRegisterRequest"
+        required: true
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/UserRegistration"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '422':
+          description: Unprocessable Content
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '503':
+          description: Service Unavailable
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+  "/auth/login":
+    post:
+      tags:
+      - 사용자 등록·인증
+      summary: 학번형 ID만으로 시연용 로그인
+      description: 등록된 학번으로만 로그인합니다. 미등록 학번은 먼저 /auth/register로 등록하세요. 실제 학생 여부는 확인하지
+        않습니다.
+      operationId: login_auth_login_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/LoginRequest"
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/LoginResponse"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '422':
+          description: Unprocessable Content
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '503':
+          description: Service Unavailable
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+  "/auth/me":
+    get:
+      tags:
+      - 내 정보·예약 조회
+      summary: 현재 로그인 사용자의 학번·이름·단과대학·학과 조회
+      operationId: me_auth_me_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/UserIdentity"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '422':
+          description: Unprocessable Content
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '503':
+          description: Service Unavailable
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+      security:
+      - DemoSession: []
+  "/auth/logout":
+    post:
+      tags:
+      - 사용자 등록·인증
+      summary: 현재 로그인 세션 종료
+      operationId: logout_auth_logout_post
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/LogoutResponse"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '422':
+          description: Unprocessable Content
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '503':
+          description: Service Unavailable
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+      security:
+      - DemoSession: []
+  "/admin/auth/login":
+    post:
+      tags:
+      - 관리자 인증
+      summary: 관리자 ID·비밀번호 로그인
+      operationId: login_admin_auth_login_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/AdminLoginRequest"
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AdminLoginResponse"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '422':
+          description: Unprocessable Content
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '503':
+          description: Service Unavailable
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+  "/admin/auth/me":
+    get:
+      tags:
+      - 관리자 인증
+      summary: 현재 관리자 로그인 확인
+      operationId: me_admin_auth_me_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AdminIdentity"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '422':
+          description: Unprocessable Content
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '503':
+          description: Service Unavailable
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+      security:
+      - AdminSession: []
+  "/admin/auth/logout":
+    post:
+      tags:
+      - 관리자 인증
+      summary: 현재 관리자 세션 종료
+      operationId: logout_admin_auth_logout_post
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/LogoutResponse"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '422':
+          description: Unprocessable Content
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '503':
+          description: Service Unavailable
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+      security:
+      - AdminSession: []
+  "/admin/reservations/{reservation_id}":
+    patch:
+      tags:
+      - 관리자 예약 관리
+      summary: 관리자 예약 시작·종료 시각 및 상태 변경
+      description: UTC Unix 초. 생략한 필드는 유지합니다. 확정 예약끼리 시간 중복은 허용하지 않습니다.
+      operationId: edit_admin_reservations__reservation_id__patch
+      security:
+      - AdminSession: []
+      parameters:
+      - name: reservation_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          maximum: 9223372036854776000
+          exclusiveMinimum: 0
+          title: Reservation Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/AdminReservationEdit"
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Reservation"
+        '401':
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+          description: Not Found
+        '409':
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+          description: Conflict
+        '422':
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+          description: Unprocessable Content
+        '503':
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+          description: Service Unavailable
+    delete:
+      tags:
+      - 관리자 예약 관리
+      summary: 관리자가 특정 예약과 연결 이력을 영구 삭제
+      operationId: delete_reservation_admin_reservations__reservation_id__delete
+      security:
+      - AdminSession: []
+      parameters:
+      - name: reservation_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          maximum: 9223372036854776000
+          exclusiveMinimum: 0
+          title: Reservation Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ReservationDeleted"
+        '401':
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+          description: Not Found
+        '409':
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+          description: Conflict
+        '422':
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+          description: Unprocessable Content
+        '503':
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+          description: Service Unavailable
+  "/admin/reservations":
+    post:
+      tags:
+      - 관리자 예약 관리
+      summary: 관리자가 사용자·좌석·시작·종료 시각을 지정하여 예약 등록
+      operationId: create_reservation_admin_reservations_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/AdminReservationCreate"
+        required: true
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Reservation"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '422':
+          description: Unprocessable Content
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '503':
+          description: Service Unavailable
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+      security:
+      - AdminSession: []
+  "/me/reservations":
+    post:
+      tags:
+      - 예약 등록·변경
+      summary: 로그인 사용자 명의로 현재 시각부터 예약
+      description: 학번은 본문이 아닌 로그인 토큰에서 가져옵니다.
+      operationId: create_me_reservations_post
+      security:
+      - DemoSession: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/ReservationCreate"
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Reservation"
+        '401':
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+          description: Unauthorized
+        '404':
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+          description: Not Found
+        '409':
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+          description: Conflict
+        '422':
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+          description: Unprocessable Content
+        '503':
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+          description: Service Unavailable
+    get:
+      tags:
+      - 내 정보·예약 조회
+      summary: 내 이용 중(IN_USE) 예약 조회
+      description: 로그인 사용자에게 연결된 IN_USE 예약만 반환합니다. 없으면 빈 배열입니다.
+      operationId: in_use_me_reservations_get
+      security:
+      - DemoSession: []
+      parameters:
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 500
+          minimum: 1
+          default: 100
+          title: Limit
+      - name: offset
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 9223372036854776000
+          minimum: 0
+          default: 0
+          title: Offset
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  "$ref": "#/components/schemas/Reservation"
+                title: Response In Use Me Reservations Get
+        '401':
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+          description: Unauthorized
+        '404':
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+          description: Not Found
+        '409':
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+          description: Conflict
+        '422':
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+          description: Unprocessable Content
+        '503':
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+          description: Service Unavailable
+  "/me/seat-history":
+    get:
+      tags:
+      - 내 정보·예약 조회
+      summary: 내 이용 좌석 이력 조회
+      description: 로그인 사용자의 독립 저장된 좌석 이력을 이용 시각·ID 내림차순으로 반환합니다. 각 행은 id, s_id, seat_id,
+        used_at입니다. 원본 예약 삭제·정리 후에도 남습니다. 예약 시작·좌석 이동 기반이며 실제 착석 증명은 아닙니다. 기존 예약별
+        seats 배열 응답을 대체합니다.
+      operationId: seat_history_me_seat_history_get
+      security:
+      - DemoSession: []
+      parameters:
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 500
+          minimum: 1
+          default: 100
+          title: Limit
+      - name: offset
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 9223372036854776000
+          minimum: 0
+          default: 0
+          title: Offset
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  "$ref": "#/components/schemas/SeatHistory"
+                title: Response Seat History Me Seat History Get
+        '401':
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+          description: Unauthorized
+        '404':
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+          description: Not Found
+        '409':
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+          description: Conflict
+        '422':
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+          description: Unprocessable Content
+        '503':
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+          description: Service Unavailable
+  "/admin/maintenance/cleanup":
+    post:
+      tags:
+      - 관리자 데이터 정리
+      summary: 만료 데이터 미리보기 또는 삭제
+      description: 기본 dry_run=true. 예약 보관기간 기본 30일, 만료 세션은 즉시 대상. 사용자·유효 예약·유효 세션은
+        유지합니다.
+      operationId: cleanup_admin_maintenance_cleanup_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/CleanupRequest"
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/CleanupResult"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '422':
+          description: Unprocessable Content
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '503':
+          description: Service Unavailable
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+      security:
+      - AdminSession: []
+components:
+  schemas:
+    AdminIdentity:
+      properties:
+        username:
+          type: string
+          title: Username
+        created_at:
+          type: integer
+          title: Created At
+        session_expires_at:
+          type: integer
+          title: Session Expires At
+      type: object
+      required:
+      - username
+      - created_at
+      - session_expires_at
+      title: AdminIdentity
+    AdminLoginRequest:
+      properties:
+        username:
+          type: string
+          maxLength: 32
+          minLength: 3
+          pattern: "^[A-Za-z0-9_-]+$"
+          title: Username
+        password:
+          type: string
+          maxLength: 128
+          minLength: 1
+          title: Password
+      additionalProperties: false
+      type: object
+      required:
+      - username
+      - password
+      title: AdminLoginRequest
+    AdminLoginResponse:
+      properties:
+        access_token:
+          type: string
+          title: Access Token
+        token_type:
+          type: string
+          const: bearer
+          title: Token Type
+          default: bearer
+        expires_in:
+          type: integer
+          title: Expires In
+        expires_at:
+          type: integer
+          title: Expires At
+        admin:
+          "$ref": "#/components/schemas/AdminIdentity"
+      type: object
+      required:
+      - access_token
+      - expires_in
+      - expires_at
+      - admin
+      title: AdminLoginResponse
+    AdminReservationCreate:
+      properties:
+        seat_id:
+          type: integer
+          maximum: 9223372036854776000
+          exclusiveMinimum: 0
+          title: Seat Id
+        s_id:
+          type: string
+          maxLength: 10
+          minLength: 10
+          pattern: "^[0-9]{10}$"
+          title: S Id
+        starts_at:
+          type: integer
+          maximum: 9223372036854776000
+          minimum: 0
+          title: Starts At
+        ends_at:
+          type: integer
+          maximum: 9223372036854776000
+          minimum: 0
+          title: Ends At
+      additionalProperties: false
+      type: object
+      required:
+      - seat_id
+      - s_id
+      - starts_at
+      - ends_at
+      title: AdminReservationCreate
+    AdminReservationEdit:
+      properties:
+        starts_at:
+          anyOf:
+          - type: integer
+            maximum: 9223372036854776000
+            minimum: 0
+          - type: 'null'
+          title: Starts At
+        ends_at:
+          anyOf:
+          - type: integer
+            maximum: 9223372036854776000
+            minimum: 0
+          - type: 'null'
+          title: Ends At
+        status:
+          anyOf:
+          - type: string
+            enum:
+            - CONFIRMED
+            - ENDED
+            - CANCELLED
+          - type: 'null'
+          title: Status
+      additionalProperties: false
+      type: object
+      title: AdminReservationEdit
+    CleanupCounts:
+      properties:
+        reservations:
+          type: integer
+          title: Reservations
+        reservation_moves:
+          type: integer
+          title: Reservation Moves
+        reservation_owners:
+          type: integer
+          title: Reservation Owners
+        user_sessions:
+          type: integer
+          title: User Sessions
+        admin_sessions:
+          type: integer
+          title: Admin Sessions
+      type: object
+      required:
+      - reservations
+      - reservation_moves
+      - reservation_owners
+      - user_sessions
+      - admin_sessions
+      title: CleanupCounts
+    CleanupRequest:
+      properties:
+        dry_run:
+          type: boolean
+          title: Dry Run
+          default: true
+        reservation_retention_days:
+          type: integer
+          maximum: 36500
+          minimum: 0
+          title: Reservation Retention Days
+          default: 30
+      additionalProperties: false
+      type: object
+      title: CleanupRequest
+    CleanupResult:
+      properties:
+        dry_run:
+          type: boolean
+          title: Dry Run
+        checked_at:
+          type: integer
+          title: Checked At
+        reservation_retention_days:
+          type: integer
+          title: Reservation Retention Days
+        reservation_cutoff_at:
+          type: integer
+          title: Reservation Cutoff At
+        matched:
+          "$ref": "#/components/schemas/CleanupCounts"
+        deleted:
+          "$ref": "#/components/schemas/CleanupCounts"
+      type: object
+      required:
+      - dry_run
+      - checked_at
+      - reservation_retention_days
+      - reservation_cutoff_at
+      - matched
+      - deleted
+      title: CleanupResult
+    ErrorDetail:
+      properties:
+        code:
+          type: string
+          title: Code
+        message:
+          type: string
+          title: Message
+      type: object
+      required:
+      - code
+      - message
+      title: ErrorDetail
+    ErrorResponse:
+      properties:
+        error:
+          "$ref": "#/components/schemas/ErrorDetail"
+      type: object
+      required:
+      - error
+      title: ErrorResponse
+    Floor:
+      properties:
+        id:
+          type: integer
+          title: Id
+        code:
+          type: string
+          title: Code
+        name:
+          type: string
+          title: Name
+        sort_order:
+          type: integer
+          title: Sort Order
+      type: object
+      required:
+      - id
+      - code
+      - name
+      - sort_order
+      title: Floor
+    LoginRequest:
+      properties:
+        s_id:
+          type: string
+          maxLength: 10
+          minLength: 10
+          pattern: "^[0-9]{10}$"
+          title: S Id
+      additionalProperties: false
+      type: object
+      required:
+      - s_id
+      title: LoginRequest
+    LoginResponse:
+      properties:
+        access_token:
+          type: string
+          title: Access Token
+        token_type:
+          type: string
+          const: bearer
+          title: Token Type
+          default: bearer
+        expires_in:
+          type: integer
+          title: Expires In
+        expires_at:
+          type: integer
+          title: Expires At
+        user:
+          "$ref": "#/components/schemas/UserIdentity"
+      type: object
+      required:
+      - access_token
+      - expires_in
+      - expires_at
+      - user
+      title: LoginResponse
+    LogoutResponse:
+      properties:
+        message:
+          type: string
+          title: Message
+      type: object
+      required:
+      - message
+      title: LogoutResponse
+    NextReservation:
+      properties:
+        id:
+          type: integer
+          title: Id
+        starts_at:
+          type: integer
+          title: Starts At
+        ends_at:
+          type: integer
+          title: Ends At
+      type: object
+      required:
+      - id
+      - starts_at
+      - ends_at
+      title: NextReservation
+    Reservation:
+      properties:
+        id:
+          type: integer
+          title: Id
+        seat_id:
+          type: integer
+          title: Seat Id
+        confirmed_at:
+          type: integer
+          title: Confirmed At
+        starts_at:
+          type: integer
+          title: Starts At
+        def_time:
+          type: integer
+          title: Def Time
+        ends_at:
+          type: integer
+          title: Ends At
+        status:
+          type: string
           enum:
-          - "available"
-          - "pending"
-          - "sold"
-          default: "available"
-        collectionFormat: "multi"
-      responses:
-        200:
-          description: "successful operation"
-          schema:
-            type: "array"
-            items:
-              $ref: "#/definitions/Pet"
-        400:
-          description: "Invalid status value"
-      security:
-      - petstore_auth:
-        - "write:pets"
-        - "read:pets"
-  /pet/findByTags:
-    get:
-      tags:
-      - "pet"
-      summary: "Finds Pets by tags"
-      description: "Multiple tags can be provided with comma separated strings. Use\
-        \ tag1, tag2, tag3 for testing."
-      operationId: "findPetsByTags"
-      produces:
-      - "application/json"
-      - "application/xml"
-      parameters:
-      - name: "tags"
-        in: "query"
-        description: "Tags to filter by"
-        required: true
-        type: "array"
-        items:
-          type: "string"
-        collectionFormat: "multi"
-      responses:
-        200:
-          description: "successful operation"
-          schema:
-            type: "array"
-            items:
-              $ref: "#/definitions/Pet"
-        400:
-          description: "Invalid tag value"
-      security:
-      - petstore_auth:
-        - "write:pets"
-        - "read:pets"
-      deprecated: true
-  /pet/{petId}:
-    get:
-      tags:
-      - "pet"
-      summary: "Find pet by ID"
-      description: "Returns a single pet"
-      operationId: "getPetById"
-      produces:
-      - "application/json"
-      - "application/xml"
-      parameters:
-      - name: "petId"
-        in: "path"
-        description: "ID of pet to return"
-        required: true
-        type: "integer"
-        format: "int64"
-      responses:
-        200:
-          description: "successful operation"
-          schema:
-            $ref: "#/definitions/Pet"
-        400:
-          description: "Invalid ID supplied"
-        404:
-          description: "Pet not found"
-      security:
-      - api_key: []
-    post:
-      tags:
-      - "pet"
-      summary: "Updates a pet in the store with form data"
-      description: ""
-      operationId: "updatePetWithForm"
-      consumes:
-      - "application/x-www-form-urlencoded"
-      produces:
-      - "application/json"
-      - "application/xml"
-      parameters:
-      - name: "petId"
-        in: "path"
-        description: "ID of pet that needs to be updated"
-        required: true
-        type: "integer"
-        format: "int64"
-      - name: "name"
-        in: "formData"
-        description: "Updated name of the pet"
-        required: false
-        type: "string"
-      - name: "status"
-        in: "formData"
-        description: "Updated status of the pet"
-        required: false
-        type: "string"
-      responses:
-        405:
-          description: "Invalid input"
-      security:
-      - petstore_auth:
-        - "write:pets"
-        - "read:pets"
-    delete:
-      tags:
-      - "pet"
-      summary: "Deletes a pet"
-      description: ""
-      operationId: "deletePet"
-      produces:
-      - "application/json"
-      - "application/xml"
-      parameters:
-      - name: "api_key"
-        in: "header"
-        required: false
-        type: "string"
-      - name: "petId"
-        in: "path"
-        description: "Pet id to delete"
-        required: true
-        type: "integer"
-        format: "int64"
-      responses:
-        400:
-          description: "Invalid ID supplied"
-        404:
-          description: "Pet not found"
-      security:
-      - petstore_auth:
-        - "write:pets"
-        - "read:pets"
-  /store/order:
-    post:
-      tags:
-      - "store"
-      summary: "Place an order for a pet"
-      description: ""
-      operationId: "placeOrder"
-      consumes:
-      - "application/json"
-      produces:
-      - "application/json"
-      - "application/xml"
-      parameters:
-      - in: "body"
-        name: "body"
-        description: "order placed for purchasing the pet"
-        required: true
-        schema:
-          $ref: "#/definitions/Order"
-      responses:
-        200:
-          description: "successful operation"
-          schema:
-            $ref: "#/definitions/Order"
-        400:
-          description: "Invalid Order"
-  /store/order/{orderId}:
-    get:
-      tags:
-      - "store"
-      summary: "Find purchase order by ID"
-      description: "For valid response try integer IDs with value >= 1 and <= 10.\
-        \ Other values will generated exceptions"
-      operationId: "getOrderById"
-      produces:
-      - "application/json"
-      - "application/xml"
-      parameters:
-      - name: "orderId"
-        in: "path"
-        description: "ID of pet that needs to be fetched"
-        required: true
-        type: "integer"
-        maximum: 10
-        minimum: 1
-        format: "int64"
-      responses:
-        200:
-          description: "successful operation"
-          schema:
-            $ref: "#/definitions/Order"
-        400:
-          description: "Invalid ID supplied"
-        404:
-          description: "Order not found"
-    delete:
-      tags:
-      - "store"
-      summary: "Delete purchase order by ID"
-      description: "For valid response try integer IDs with positive integer value.\
-        \ Negative or non-integer values will generate API errors"
-      operationId: "deleteOrder"
-      produces:
-      - "application/json"
-      - "application/xml"
-      parameters:
-      - name: "orderId"
-        in: "path"
-        description: "ID of the order that needs to be deleted"
-        required: true
-        type: "integer"
-        minimum: 1
-        format: "int64"
-      responses:
-        400:
-          description: "Invalid ID supplied"
-        404:
-          description: "Order not found"
-  /store/inventory:
-    get:
-      tags:
-      - "store"
-      summary: "Returns pet inventories by status"
-      description: "Returns a map of status codes to quantities"
-      operationId: "getInventory"
-      produces:
-      - "application/json"
-      parameters: []
-      responses:
-        200:
-          description: "successful operation"
-          schema:
-            type: "object"
-            additionalProperties:
-              type: "integer"
-              format: "int32"
-      security:
-      - api_key: []
-  /user/createWithArray:
-    post:
-      tags:
-      - "user"
-      summary: "Creates list of users with given input array"
-      description: ""
-      operationId: "createUsersWithArrayInput"
-      consumes:
-      - "application/json"
-      produces:
-      - "application/json"
-      - "application/xml"
-      parameters:
-      - in: "body"
-        name: "body"
-        description: "List of user object"
-        required: true
-        schema:
-          type: "array"
-          items:
-            $ref: "#/definitions/User"
-      responses:
-        default:
-          description: "successful operation"
-  /user/createWithList:
-    post:
-      tags:
-      - "user"
-      summary: "Creates list of users with given input array"
-      description: ""
-      operationId: "createUsersWithListInput"
-      consumes:
-      - "application/json"
-      produces:
-      - "application/json"
-      - "application/xml"
-      parameters:
-      - in: "body"
-        name: "body"
-        description: "List of user object"
-        required: true
-        schema:
-          type: "array"
-          items:
-            $ref: "#/definitions/User"
-      responses:
-        default:
-          description: "successful operation"
-  /user/{username}:
-    get:
-      tags:
-      - "user"
-      summary: "Get user by user name"
-      description: ""
-      operationId: "getUserByName"
-      produces:
-      - "application/json"
-      - "application/xml"
-      parameters:
-      - name: "username"
-        in: "path"
-        description: "The name that needs to be fetched. Use user1 for testing. "
-        required: true
-        type: "string"
-      responses:
-        200:
-          description: "successful operation"
-          schema:
-            $ref: "#/definitions/User"
-        400:
-          description: "Invalid username supplied"
-        404:
-          description: "User not found"
-    put:
-      tags:
-      - "user"
-      summary: "Updated user"
-      description: "This can only be done by the logged in user."
-      operationId: "updateUser"
-      consumes:
-      - "application/json"
-      produces:
-      - "application/json"
-      - "application/xml"
-      parameters:
-      - name: "username"
-        in: "path"
-        description: "name that need to be updated"
-        required: true
-        type: "string"
-      - in: "body"
-        name: "body"
-        description: "Updated user object"
-        required: true
-        schema:
-          $ref: "#/definitions/User"
-      responses:
-        400:
-          description: "Invalid user supplied"
-        404:
-          description: "User not found"
-    delete:
-      tags:
-      - "user"
-      summary: "Delete user"
-      description: "This can only be done by the logged in user."
-      operationId: "deleteUser"
-      produces:
-      - "application/json"
-      - "application/xml"
-      parameters:
-      - name: "username"
-        in: "path"
-        description: "The name that needs to be deleted"
-        required: true
-        type: "string"
-      responses:
-        400:
-          description: "Invalid username supplied"
-        404:
-          description: "User not found"
-  /user/login:
-    get:
-      tags:
-      - "user"
-      summary: "Logs user into the system"
-      description: ""
-      operationId: "loginUser"
-      produces:
-      - "application/json"
-      - "application/xml"
-      parameters:
-      - name: "username"
-        in: "query"
-        description: "The user name for login"
-        required: true
-        type: "string"
-      - name: "password"
-        in: "query"
-        description: "The password for login in clear text"
-        required: true
-        type: "string"
-      responses:
-        200:
-          description: "successful operation"
-          headers:
-            X-Expires-After:
-              type: "string"
-              format: "date-time"
-              description: "date in UTC when token expires"
-            X-Rate-Limit:
-              type: "integer"
-              format: "int32"
-              description: "calls per hour allowed by the user"
-          schema:
-            type: "string"
-        400:
-          description: "Invalid username/password supplied"
-  /user/logout:
-    get:
-      tags:
-      - "user"
-      summary: "Logs out current logged in user session"
-      description: ""
-      operationId: "logoutUser"
-      produces:
-      - "application/json"
-      - "application/xml"
-      parameters: []
-      responses:
-        default:
-          description: "successful operation"
-  /user:
-    post:
-      tags:
-      - "user"
-      summary: "Create user"
-      description: "This can only be done by the logged in user."
-      operationId: "createUser"
-      consumes:
-      - "application/json"
-      produces:
-      - "application/json"
-      - "application/xml"
-      parameters:
-      - in: "body"
-        name: "body"
-        description: "Created user object"
-        required: true
-        schema:
-          $ref: "#/definitions/User"
-      responses:
-        default:
-          description: "successful operation"
-securityDefinitions:
-  api_key:
-    type: "apiKey"
-    name: "api_key"
-    in: "header"
-  petstore_auth:
-    type: "oauth2"
-    authorizationUrl: "https://petstore.swagger.io/oauth/authorize"
-    flow: "implicit"
-    scopes:
-      read:pets: "read your pets"
-      write:pets: "modify pets in your account"
-definitions:
-  ApiResponse:
-    type: "object"
-    properties:
-      code:
-        type: "integer"
-        format: "int32"
-      type:
-        type: "string"
-      message:
-        type: "string"
-  Category:
-    type: "object"
-    properties:
-      id:
-        type: "integer"
-        format: "int64"
-      name:
-        type: "string"
-    xml:
-      name: "Category"
-  Pet:
-    type: "object"
-    required:
-    - "name"
-    - "photoUrls"
-    properties:
-      id:
-        type: "integer"
-        format: "int64"
-      category:
-        $ref: "#/definitions/Category"
-      name:
-        type: "string"
-        example: "doggie"
-      photoUrls:
-        type: "array"
-        xml:
-          wrapped: true
-        items:
-          type: "string"
-          xml:
-            name: "photoUrl"
-      tags:
-        type: "array"
-        xml:
-          wrapped: true
-        items:
-          xml:
-            name: "tag"
-          $ref: "#/definitions/Tag"
-      status:
-        type: "string"
-        description: "pet status in the store"
-        enum:
-        - "available"
-        - "pending"
-        - "sold"
-    xml:
-      name: "Pet"
-  Tag:
-    type: "object"
-    properties:
-      id:
-        type: "integer"
-        format: "int64"
-      name:
-        type: "string"
-    xml:
-      name: "Tag"
-  Order:
-    type: "object"
-    properties:
-      id:
-        type: "integer"
-        format: "int64"
-      petId:
-        type: "integer"
-        format: "int64"
-      quantity:
-        type: "integer"
-        format: "int32"
-      shipDate:
-        type: "string"
-        format: "date-time"
-      status:
-        type: "string"
-        description: "Order Status"
-        enum:
-        - "placed"
-        - "approved"
-        - "delivered"
-      complete:
-        type: "boolean"
-    xml:
-      name: "Order"
-  User:
-    type: "object"
-    properties:
-      id:
-        type: "integer"
-        format: "int64"
-      username:
-        type: "string"
-      firstName:
-        type: "string"
-      lastName:
-        type: "string"
-      email:
-        type: "string"
-      password:
-        type: "string"
-      phone:
-        type: "string"
-      userStatus:
-        type: "integer"
-        format: "int32"
-        description: "User Status"
-    xml:
-      name: "User"
-externalDocs:
-  description: "Find out more about Swagger"
-  url: "http://swagger.io"
+          - CONFIRMED
+          - ENDED
+          - CANCELLED
+          title: Status
+        status_changed_at:
+          type: integer
+          title: Status Changed At
+        effective_status:
+          type: string
+          enum:
+          - SCHEDULED
+          - IN_USE
+          - ENDED
+          - CANCELLED
+          title: Effective Status
+        server_now:
+          type: integer
+          title: Server Now
+        remaining_seconds:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Remaining Seconds
+        notice_code:
+          anyOf:
+          - type: string
+            enum:
+            - RESERVATION_ENDING_SOON
+            - RESERVATION_ENDED
+            - RESERVATION_CANCELLED
+          - type: 'null'
+          title: Notice Code
+        notice_message:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Notice Message
+      type: object
+      required:
+      - id
+      - seat_id
+      - confirmed_at
+      - starts_at
+      - def_time
+      - ends_at
+      - status
+      - status_changed_at
+      - effective_status
+      - server_now
+      - remaining_seconds
+      - notice_code
+      - notice_message
+      title: Reservation
+    ReservationCreate:
+      properties:
+        seat_id:
+          type: integer
+          maximum: 9223372036854776000
+          exclusiveMinimum: 0
+          title: Seat Id
+          description: 전역 고유 좌석 ID. 방 안의 표시 번호와 다릅니다.
+        def_time:
+          anyOf:
+          - type: integer
+            maximum: 9223372036854776000
+            exclusiveMinimum: 0
+          - type: 'null'
+          title: Def Time
+          description: 총 이용시간(초). 생략 또는 null이면 DB 기본 21600초.
+      additionalProperties: false
+      type: object
+      required:
+      - seat_id
+      title: ReservationCreate
+    ReservationDeleted:
+      properties:
+        deleted_reservation_id:
+          type: integer
+          title: Deleted Reservation Id
+      type: object
+      required:
+      - deleted_reservation_id
+      title: ReservationDeleted
+    ReservationEdit:
+      properties:
+        def_time:
+          type: integer
+          maximum: 9223372036854776000
+          exclusiveMinimum: 0
+          title: Def Time
+          description: 예약 시작부터의 총 이용시간(초). 현재 시각부터의 시간이 아닙니다.
+      additionalProperties: false
+      type: object
+      required:
+      - def_time
+      title: ReservationEdit
+    ReservationExtend:
+      properties:
+        additional_seconds:
+          type: integer
+          maximum: 9223372036854776000
+          exclusiveMinimum: 0
+          title: Additional Seconds
+          description: 기존 총 이용시간에 더할 양의 정수 초.
+      additionalProperties: false
+      type: object
+      required:
+      - additional_seconds
+      title: ReservationExtend
+    ReservationMove:
+      properties:
+        target_seat_id:
+          type: integer
+          maximum: 9223372036854776000
+          exclusiveMinimum: 0
+          title: Target Seat Id
+          description: 이동할 좌석의 전역 ID. 예약 ID와 이용시간은 유지합니다.
+      additionalProperties: false
+      type: object
+      required:
+      - target_seat_id
+      title: ReservationMove
+    Room:
+      properties:
+        id:
+          type: integer
+          title: Id
+        floor_id:
+          type: integer
+          title: Floor Id
+        code:
+          type: string
+          title: Code
+        name:
+          type: string
+          title: Name
+      type: object
+      required:
+      - id
+      - floor_id
+      - code
+      - name
+      title: Room
+    Seat:
+      properties:
+        seat_id:
+          type: integer
+          title: Seat Id
+        floor_code:
+          type: string
+          title: Floor Code
+        floor_name:
+          type: string
+          title: Floor Name
+        room_code:
+          type: string
+          title: Room Code
+        room_name:
+          type: string
+          title: Room Name
+        seat_number:
+          type: string
+          title: Seat Number
+        active_reservation_id:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Active Reservation Id
+        starts_at:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Starts At
+        ends_at:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Ends At
+        reservation_state:
+          type: string
+          enum:
+          - AVAILABLE
+          - RESERVED
+          title: Reservation State
+        occupancy_state:
+          anyOf:
+          - type: string
+            enum:
+            - UNKNOWN
+            - EMPTY
+            - OCCUPIED
+            - SENSOR_ERROR
+          - type: 'null'
+          title: Occupancy State
+        occupied_since:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Occupied Since
+        occupancy_updated_at:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Occupancy Updated At
+        server_now:
+          type: integer
+          title: Server Now
+        remaining_seconds:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Remaining Seconds
+        next_reservation:
+          anyOf:
+          - "$ref": "#/components/schemas/NextReservation"
+          - type: 'null'
+        notice_code:
+          anyOf:
+          - type: string
+            enum:
+            - RESERVATION_ENDING_SOON
+            - RESERVATION_ENDED
+            - RESERVATION_CANCELLED
+          - type: 'null'
+          title: Notice Code
+        notice_message:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Notice Message
+      type: object
+      required:
+      - seat_id
+      - floor_code
+      - floor_name
+      - room_code
+      - room_name
+      - seat_number
+      - active_reservation_id
+      - starts_at
+      - ends_at
+      - reservation_state
+      - occupancy_state
+      - occupied_since
+      - occupancy_updated_at
+      - server_now
+      - remaining_seconds
+      - next_reservation
+      - notice_code
+      - notice_message
+      title: Seat
+    SeatHistory:
+      properties:
+        id:
+          type: integer
+          title: Id
+        s_id:
+          type: string
+          title: S Id
+        seat_id:
+          type: integer
+          title: Seat Id
+        used_at:
+          type: integer
+          title: Used At
+          description: 예약 시작 또는 좌석 이동 시각. UTC Unix 초. 원본 예약 삭제 후에도 유지.
+      type: object
+      required:
+      - id
+      - s_id
+      - seat_id
+      - used_at
+      title: SeatHistory
+    UserIdentity:
+      properties:
+        s_id:
+          type: string
+          title: S Id
+        name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Name
+        college:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: College
+        department:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Department
+        created_at:
+          type: integer
+          title: Created At
+        session_expires_at:
+          type: integer
+          title: Session Expires At
+      type: object
+      required:
+      - s_id
+      - name
+      - college
+      - department
+      - created_at
+      - session_expires_at
+      title: UserIdentity
+    UserRegisterRequest:
+      properties:
+        s_id:
+          type: string
+          maxLength: 10
+          minLength: 10
+          pattern: "^[0-9]{10}$"
+          title: S Id
+        name:
+          type: string
+          maxLength: 100
+          minLength: 1
+          title: Name
+        college:
+          type: string
+          maxLength: 100
+          minLength: 1
+          title: College
+        department:
+          type: string
+          maxLength: 100
+          minLength: 1
+          title: Department
+      additionalProperties: false
+      type: object
+      required:
+      - s_id
+      - name
+      - college
+      - department
+      title: UserRegisterRequest
+    UserRegistration:
+      properties:
+        s_id:
+          type: string
+          title: S Id
+        name:
+          type: string
+          title: Name
+        college:
+          type: string
+          title: College
+        department:
+          type: string
+          title: Department
+        created_at:
+          type: integer
+          title: Created At
+      type: object
+      required:
+      - s_id
+      - name
+      - college
+      - department
+      - created_at
+      title: UserRegistration
+  securitySchemes:
+    DemoSession:
+      type: http
+      description: POST /auth/login 응답의 access_token. 학번만 사용하는 시연용 식별입니다.
+      scheme: bearer
+    AdminSession:
+      type: http
+      description: POST /admin/auth/login의 access_token 값만 입력하세요.
+      scheme: bearer
+tags:
+- name: 서버 상태
+  description: 서버와 데이터베이스 연결 상태 확인.
+- name: 사용자 등록·인증
+  description: 사용자 별도 등록, 학번 로그인, 로그아웃. 실제 학생 본인 여부는 검증하지 않습니다.
+- name: 내 정보·예약 조회
+  description: DemoSession 토큰으로 내 프로필·이용 중 예약·예약 및 이동 기반 좌석 이력을 조회합니다.
+- name: 위치·좌석 조회
+  description: 로그인 없이 층·방·좌석 위치와 현재·다음 예약, 시간 안내를 조회합니다.
+- name: 예약 조회
+  description: 공개 예약 목록·상세·좌석별 이력 조회.
+- name: 예약 등록·변경
+  description: 예약 생성과 이용시간 변경·연장·좌석 이동·취소·종료. 생성은 DemoSession 필수이며 다른 동작의 기존 접근 정책은
+    유지합니다.
+- name: 관리자 인증
+  description: 관리자 ID·비밀번호 로그인과 AdminSession 확인·로그아웃.
+- name: 관리자 예약 관리
+  description: AdminSession 토큰으로 사용자·시각 지정 등록, 시각·상태 수정, 개별 영구 삭제.
+- name: 관리자 데이터 정리
+  description: AdminSession 토큰으로 만료 예약·세션 정리. 기본은 삭제하지 않는 미리보기입니다.
