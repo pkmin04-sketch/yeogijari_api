@@ -3,7 +3,7 @@ openapi: 3.1.0
 info:
   title: KOREA 예약정보 관리 API
   description: 관리자 테스트용 API. 시간은 UTC Unix 초이며, 실제 착석자 인증은 하지 않습니다.
-  version: 1.11.0
+  version: 1.12.0
 paths:
   "/health":
     get:
@@ -675,6 +675,144 @@ paths:
               schema:
                 "$ref": "#/components/schemas/ErrorResponse"
           description: Conflict
+        '422':
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+          description: Unprocessable Content
+        '503':
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+          description: Service Unavailable
+  "/seats/{seat_id}/occupancy":
+    post:
+      tags:
+      - ESP32 상태 통신
+      summary: ESP32 착석 상태 수신
+      description: 인증 헤더 없이 state JSON만 받습니다. OCCUPIED 또는 EMPTY를 저장하고 현재 예약·남은 시간·착석
+        상태를 반환합니다. 시각은 서버 기준입니다.
+      operationId: update_occupancy_seats__seat_id__occupancy_post
+      parameters:
+      - name: seat_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          maximum: 9223372036854776000
+          exclusiveMinimum: 0
+          title: Seat Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/OccupancyUpdate"
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Seat"
+        '404':
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+          description: Not Found
+        '422':
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+          description: Unprocessable Content
+        '503':
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+          description: Service Unavailable
+  "/api/seats/{seat_id}/occupancy":
+    post:
+      tags:
+      - ESP32 상태 통신
+      summary: ESP32 착석 상태 수신 — 첨부 코드 호환 주소
+      description: ai_studio_code.cpp의 serverPostUrl과 같은 경로입니다. 인증 없이 OCCUPIED/EMPTY
+        JSON을 받고 기존 주소와 같은 처리·응답을 사용합니다.
+      operationId: update_occupancy_api_seats__seat_id__occupancy_post
+      parameters:
+      - name: seat_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          maximum: 9223372036854776000
+          exclusiveMinimum: 0
+          title: Seat Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/OccupancyUpdate"
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Seat"
+        '404':
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+          description: Not Found
+        '422':
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+          description: Unprocessable Content
+        '503':
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+          description: Service Unavailable
+  "/seats/{seat_id}/reservation-info":
+    get:
+      tags:
+      - ESP32 상태 통신
+      summary: ESP32에 좌석 예약정보 전달
+      description: 인증 없이 현재 예약 여부·시작/종료 시각·남은 초·다음 예정 예약을 반환합니다. 서버 시각 기준이며 착석·센서·LED
+        판단은 포함하지 않습니다.
+      operationId: reservation_info_seats__seat_id__reservation_info_get
+      parameters:
+      - name: seat_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          maximum: 9223372036854776000
+          exclusiveMinimum: 0
+          title: Seat Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/DeviceReservationInfo"
+        '404':
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+          description: Not Found
         '422':
           content:
             application/json:
@@ -1643,6 +1781,55 @@ components:
       - matched
       - deleted
       title: CleanupResult
+    DeviceReservationInfo:
+      properties:
+        seat_id:
+          type: integer
+          title: Seat Id
+        reservation_state:
+          type: string
+          enum:
+          - AVAILABLE
+          - RESERVED
+          title: Reservation State
+        active_reservation_id:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Active Reservation Id
+        starts_at:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Starts At
+        ends_at:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Ends At
+        remaining_seconds:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Remaining Seconds
+        next_reservation:
+          anyOf:
+          - "$ref": "#/components/schemas/NextReservation"
+          - type: 'null'
+        server_now:
+          type: integer
+          title: Server Now
+      type: object
+      required:
+      - seat_id
+      - reservation_state
+      - active_reservation_id
+      - starts_at
+      - ends_at
+      - remaining_seconds
+      - next_reservation
+      - server_now
+      title: DeviceReservationInfo
     ErrorDetail:
       properties:
         code:
@@ -1749,6 +1936,19 @@ components:
       - starts_at
       - ends_at
       title: NextReservation
+    OccupancyUpdate:
+      properties:
+        state:
+          type: string
+          enum:
+          - OCCUPIED
+          - EMPTY
+          title: State
+      additionalProperties: false
+      type: object
+      required:
+      - state
+      title: OccupancyUpdate
     Reservation:
       properties:
         id:
@@ -2146,6 +2346,8 @@ components:
       description: POST /admin/auth/login의 access_token 값만 입력하세요.
       scheme: bearer
 tags:
+- name: ESP32 상태 통신
+  description: 인증 없이 착석 상태를 수신하고 ESP32에 현재·다음 예약정보를 전달합니다.
 - name: 서버 상태
   description: 서버와 데이터베이스 연결 상태 확인.
 - name: 사용자 등록·인증
