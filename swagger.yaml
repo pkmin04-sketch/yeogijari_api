@@ -739,7 +739,7 @@ paths:
     post:
       tags:
       - ESP32 상태 통신
-      summary: ESP32 착석 상태 수신 — 첨부 코드 호환 주소
+      summary: ESP32 착석 상태 수신
       description: 인증 없이 OCCUPIED/EMPTY JSON을 받고 기존 주소와 같은 처리·응답을 사용합니다.
       operationId: update_occupancy_api_seats__seat_id__occupancy_post
       parameters:
