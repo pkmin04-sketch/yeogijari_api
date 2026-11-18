@@ -53,6 +53,6 @@ The example API specification used by this repository can be seen hosted at [htt
 
     ![Headers](/screenshots/swagger-github-pages.png?raw=true)
     
-7. Browse to the Swagger documentation at `https://{github-username}.github.io/{repository-name}/`.
+7. Browse to the Swagger documentation at `https://pkmin04-sketch.github.io/yeogijari_api/`.
 
    The example API specification used by this repository can be seen hosted at [https://peter-evans.github.io/swagger-github-pages](https://peter-evans.github.io/swagger-github-pages/).
