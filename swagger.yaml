@@ -2,7 +2,7 @@ openapi: 3.1.0
 info:
   title: KOREA 예약정보 관리 API
   description: 여기자리 서비스 위한 API.
-  version: 1.13.0
+  version: 1.14.0
 paths:
   /health:
     get:
@@ -142,7 +142,7 @@ paths:
       description: |-
         `floor_id`, `room_id`로 범위를 좁히고 `limit`·`offset`으로 나누어 조회합니다.
 
-        좌석별 위치, 현재 예약, 다음 예정 예약, 남은 초, 마지막 저장 착석 상태를 반환합니다. `reservation_state=AVAILABLE`은 현재 예약이 없다는 뜻이며 비착석을 보장하지 않습니다. 현재 예약이 없으면 `remaining_seconds=null`입니다. 로그인 없이 조회합니다.
+        기존 좌석별 위치·현재/다음 예약·남은 초·마지막 착석 상태를 유지하고 최종 seat_status를 추가합니다. 센서 오류·초기화·실제 장치 수신 10초 초과는 UNKNOWN입니다. LED·통신 상세는 관리자 전용 API에서 제공합니다. `reservation_state=AVAILABLE`은 현재 예약이 없다는 뜻이며 비착석을 보장하지 않습니다. 현재 예약이 없으면 `remaining_seconds=null`입니다. 로그인 없이 조회합니다.
       operationId: seats_seats_get
       parameters:
         - name: floor_id
@@ -224,7 +224,7 @@ paths:
       description: |-
         전역 `seat_id`로 좌석을 조회합니다. 방 안의 표시 번호와 다릅니다. ESP32는 이 경로를 1~2초마다 요청해 `reservation_state`와 `remaining_seconds`를 읽을 수 있습니다.
 
-        현재 유효 예약은 RESERVED, 없으면 AVAILABLE입니다. 예정 예약은 `next_reservation`으로 구분합니다. 착석 상태는 DB의 마지막 저장값이며 수신 중단 자동 판정이나 LED 명령을 포함하지 않습니다. 없는 좌석은 404입니다.
+        현재 유효 예약은 RESERVED, 없으면 AVAILABLE입니다. 예정 예약은 `next_reservation`으로 구분합니다. occupancy_state는 마지막 저장값을 유지하고 seat_status는 예약·착석·수신 유효성으로 계산합니다. 수신 단절은 UNKNOWN이며 LED·통신 상세는 /admin/seats/{seat_id}에서 관리자 인증으로 조회합니다. 없는 좌석은 404입니다.
       operationId: seat_seats__seat_id__get
       parameters:
         - name: seat_id
@@ -723,10 +723,7 @@ paths:
       tags:
         - ESP32 상태 통신
       summary: ESP32 착석 상태 수신·저장
-      description: |-
-        인증 없이 `{"state":"OCCUPIED"}` 또는 `{"state":"EMPTY"}`를 받습니다. 전역 seat_id가 있어야 하며 다른 값·빈 본문·추가 필드는 422입니다.
-
-        새 착석은 서버 시각을 occupied_since에 기록하고 반복 OCCUPIED는 최초 시각을 유지합니다. EMPTY는 occupied_since를 null로 만들며 매 정상 수신마다 updated_at을 갱신합니다. 성공은 200과 기존 Seat 형식의 좌석 정보입니다. 예약 생성·변경이나 센서 오류·수신 중단 판정은 하지 않습니다.
+      description: 인증 없이 state(OCCUPIED·EMPTY·SENSOR_ERROR)를 받습니다. led_state는 선택이며 OFF·BLUE_ON·ORANGE_ON·RED_BLINK를 허용합니다. 생략 또는 null은 이전 회신을 유지합니다. 최초 미회신은 null입니다. 서버 수신시각과 LED 회신시각을 별도로 저장합니다. 기존 state만 보낸 요청도 허용합니다. 오류·10초 초과 단절은 연속 착석 증거를 해제합니다. 응답은 기존 좌석 필드와 seat_status이며 장치 상세는 관리자 API에서 조회합니다.
       operationId: update_occupancy_seats__seat_id__occupancy_post
       parameters:
         - name: seat_id
@@ -773,10 +770,7 @@ paths:
       tags:
         - ESP32 상태 통신
       summary: ESP32에 현재·다음 예약정보 전달
-      description: |-
-        ESP32가 이 경로를 1~2초마다 GET하면 인증 없이 예약정보를 응답합니다. 서버가 ESP32에 먼저 접속하는 push 방식은 아닙니다.
-
-        현재 예약 여부, 예약 ID, 시작·종료 시각, 남은 초, 다음 예정 예약과 서버 현재 시각을 반환합니다. 현재 예약이 없으면 AVAILABLE과 현재 예약 필드 null이며 예정 예약은 next_reservation으로 구분합니다. 착석 판단·10초 수신 지연·LED 명령·혼잡도는 포함하지 않습니다.
+      description: 기존 현재·다음 예약정보에 seat_status와 target_led를 추가합니다. ESP32는 주기적으로 GET해 LED 목표를 적용하고 다음 occupancy POST에서 led_state를 회신합니다. 예약 상태와 최종 좌석 상태는 별도입니다. 예약된 빈자리는 BLUE_ON, 착석 중 0초 초과·10분 이하는 ORANGE_ON, 자연 만료 후 입증된 연속 착석만 RED_BLINK이며 나머지는 OFF입니다. 센서 오류·실제 장치 수신 10초 초과·초기화는 UNKNOWN/OFF입니다. 조회 실패는 오류 응답입니다. 혼잡도는 포함하지 않습니다.
       operationId: reservation_info_seats__seat_id__reservation_info_get
       parameters:
         - name: seat_id
@@ -1371,6 +1365,160 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
         - AdminSession: []
+  /admin/seats:
+    get:
+      tags:
+        - 관리자 예약 관리
+      summary: 관리자 좌석·LED·통신 상태 목록
+      description: AdminSession이 필요합니다. 공개 좌석 필드에 target_led·led_state·led_state_updated_at·device_connected를 추가합니다. 수신 이력이 있고 마지막 수신 후 10초 이하는 연결, 초과는 단절입니다. 센서 오류도 정상 수신이면 연결은 true입니다. 미회신 LED는 null이며 회신 생략은 이전 값을 유지합니다. floor_id·room_id·limit·offset으로 조회하며 배열 형식을 유지합니다. 가상 좌석은 통신 단절 판정을 적용하지 않고 device_connected=false로 반환합니다.
+      operationId: admin_seats_admin_seats_get
+      security:
+        - AdminSession: []
+      parameters:
+        - name: floor_id
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - type: integer
+                maximum: 9223372036854776000
+                exclusiveMinimum: 0
+              - type: 'null'
+            title: Floor Id
+        - name: room_id
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - type: integer
+                maximum: 9223372036854776000
+                exclusiveMinimum: 0
+              - type: 'null'
+            title: Room Id
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            maximum: 500
+            minimum: 1
+            default: 100
+            title: Limit
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+            title: Offset
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AdminSeat'
+                title: Response Admin Seats Admin Seats Get
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Not Found
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Conflict
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Unprocessable Content
+        '503':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Service Unavailable
+  /admin/seats/{seat_id}:
+    get:
+      tags:
+        - 관리자 예약 관리
+      summary: 관리자 개별 좌석·LED·통신 상태
+      description: AdminSession이 필요합니다. 목표 LED와 마지막 실제 적용 회신을 구분합니다. 기존 occupancy_updated_at은 마지막 센서 저장시각입니다. 연결 여부는 실제 수신 기록으로 판정하며 초기 DB 생성시각을 수신으로 간주하지 않습니다. 재시작 후 실제 좌석은 새 보고 전 UNKNOWN입니다.
+      operationId: admin_seat_admin_seats__seat_id__get
+      security:
+        - AdminSession: []
+      parameters:
+        - name: seat_id
+          in: path
+          required: true
+          schema:
+            type: integer
+            maximum: 9223372036854776000
+            exclusiveMinimum: 0
+            title: Seat Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminSeat'
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Not Found
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Conflict
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Unprocessable Content
+        '503':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Service Unavailable
   /admin/reservation-settings:
     get:
       tags:
@@ -1782,6 +1930,156 @@ components:
       additionalProperties: false
       type: object
       title: AdminReservationEdit
+    AdminSeat:
+      properties:
+        seat_id:
+          type: integer
+          title: Seat Id
+        floor_code:
+          type: string
+          title: Floor Code
+        floor_name:
+          type: string
+          title: Floor Name
+        room_code:
+          type: string
+          title: Room Code
+        room_name:
+          type: string
+          title: Room Name
+        seat_number:
+          type: string
+          title: Seat Number
+        active_reservation_id:
+          anyOf:
+            - type: integer
+            - type: 'null'
+          title: Active Reservation Id
+        starts_at:
+          anyOf:
+            - type: integer
+            - type: 'null'
+          title: Starts At
+        ends_at:
+          anyOf:
+            - type: integer
+            - type: 'null'
+          title: Ends At
+        reservation_state:
+          type: string
+          enum:
+            - AVAILABLE
+            - RESERVED
+          title: Reservation State
+        seat_status:
+          type: string
+          enum:
+            - AVAILABLE
+            - RESERVED_EMPTY
+            - RESERVED_OCCUPIED
+            - EXPIRING_OCCUPIED
+            - EXPIRED_OCCUPIED
+            - UNRESERVED_OCCUPIED
+            - UNKNOWN
+          title: Seat Status
+        occupancy_state:
+          anyOf:
+            - type: string
+              enum:
+                - UNKNOWN
+                - EMPTY
+                - OCCUPIED
+                - SENSOR_ERROR
+            - type: 'null'
+          title: Occupancy State
+        occupied_since:
+          anyOf:
+            - type: integer
+            - type: 'null'
+          title: Occupied Since
+        occupancy_updated_at:
+          anyOf:
+            - type: integer
+            - type: 'null'
+          title: Occupancy Updated At
+        server_now:
+          type: integer
+          title: Server Now
+        remaining_seconds:
+          anyOf:
+            - type: integer
+            - type: 'null'
+          title: Remaining Seconds
+        next_reservation:
+          anyOf:
+            - $ref: '#/components/schemas/NextReservation'
+            - type: 'null'
+        notice_code:
+          anyOf:
+            - type: string
+              enum:
+                - RESERVATION_ENDING_SOON
+                - RESERVATION_ENDED
+                - RESERVATION_CANCELLED
+            - type: 'null'
+          title: Notice Code
+        notice_message:
+          anyOf:
+            - type: string
+            - type: 'null'
+          title: Notice Message
+        target_led:
+          type: string
+          enum:
+            - 'OFF'
+            - BLUE_ON
+            - ORANGE_ON
+            - RED_BLINK
+          title: Target Led
+        led_state:
+          anyOf:
+            - type: string
+              enum:
+                - 'OFF'
+                - BLUE_ON
+                - ORANGE_ON
+                - RED_BLINK
+            - type: 'null'
+          title: Led State
+        led_state_updated_at:
+          anyOf:
+            - type: integer
+            - type: 'null'
+          title: Led State Updated At
+        device_connected:
+          type: boolean
+          title: Device Connected
+      type: object
+      required:
+        - seat_id
+        - floor_code
+        - floor_name
+        - room_code
+        - room_name
+        - seat_number
+        - active_reservation_id
+        - starts_at
+        - ends_at
+        - reservation_state
+        - seat_status
+        - occupancy_state
+        - occupied_since
+        - occupancy_updated_at
+        - server_now
+        - remaining_seconds
+        - next_reservation
+        - notice_code
+        - notice_message
+        - target_led
+        - led_state
+        - led_state_updated_at
+        - device_connected
+      title: AdminSeat
     CleanupCounts:
       properties:
         reservations:
@@ -1851,6 +2149,25 @@ components:
       title: CleanupResult
     DeviceReservationInfo:
       properties:
+        seat_status:
+          type: string
+          enum:
+            - AVAILABLE
+            - RESERVED_EMPTY
+            - RESERVED_OCCUPIED
+            - EXPIRING_OCCUPIED
+            - EXPIRED_OCCUPIED
+            - UNRESERVED_OCCUPIED
+            - UNKNOWN
+          title: Seat Status
+        target_led:
+          type: string
+          enum:
+            - 'OFF'
+            - BLUE_ON
+            - ORANGE_ON
+            - RED_BLINK
+          title: Target Led
         seat_id:
           type: integer
           title: Seat Id
@@ -1889,6 +2206,8 @@ components:
           title: Server Now
       type: object
       required:
+        - seat_status
+        - target_led
         - seat_id
         - reservation_state
         - active_reservation_id
@@ -2011,7 +2330,18 @@ components:
           enum:
             - OCCUPIED
             - EMPTY
+            - SENSOR_ERROR
           title: State
+        led_state:
+          anyOf:
+            - type: string
+              enum:
+                - 'OFF'
+                - BLUE_ON
+                - ORANGE_ON
+                - RED_BLINK
+            - type: 'null'
+          title: Led State
       additionalProperties: false
       type: object
       required:
@@ -2263,6 +2593,17 @@ components:
             - AVAILABLE
             - RESERVED
           title: Reservation State
+        seat_status:
+          type: string
+          enum:
+            - AVAILABLE
+            - RESERVED_EMPTY
+            - RESERVED_OCCUPIED
+            - EXPIRING_OCCUPIED
+            - EXPIRED_OCCUPIED
+            - UNRESERVED_OCCUPIED
+            - UNKNOWN
+          title: Seat Status
         occupancy_state:
           anyOf:
             - type: string
@@ -2321,6 +2662,7 @@ components:
         - starts_at
         - ends_at
         - reservation_state
+        - seat_status
         - occupancy_state
         - occupied_since
         - occupancy_updated_at
@@ -2466,7 +2808,7 @@ tags:
   - name: 예약 등록·변경
     description: 예정 예약은 이동·취소, 사용 중 예약은 연장·이동·종료를 허용합니다. 만료·취소·종료 예약은 변경할 수 없고 같은 취소·종료의 반복은 기존 결과를 반환합니다. 임의 시간 수정은 관리자 API에서 처리합니다. DemoSession이 필요하며 변경은 본인 예약만 허용합니다.
   - name: ESP32 상태 통신
-    description: 인증 없는 ESP32 착석 수신과 예약정보 응답. 장치 키·혼잡도·LED 목표 상태는 제공하지 않습니다.
+    description: 인증 없는 ESP32 착석 수신과 예약정보 응답. 최종 좌석 상태와 목표 LED를 전달하고 적용 LED 회신을 저장합니다. 장치 키·혼잡도는 제공하지 않습니다.
   - name: 관리자 인증
     description: 관리자 ID·비밀번호 로그인과 AdminSession 조회·로그아웃. 일반 사용자 세션과 분리됩니다.
   - name: 관리자 예약 설정
