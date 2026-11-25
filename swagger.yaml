@@ -1401,7 +1401,7 @@ paths:
       description: |-
         DemoSession의 학번으로 독립 저장한 이용 이력을 조회합니다. 각 행은 `id`, `s_id`, `seat_id`, `used_at`이며 이용 시각·ID 내림차순입니다. 원본 예약 삭제·만료 데이터 정리 후에도 유지합니다.
 
-        예약 시작·좌석 이동을 근거로 한 기록이며 센서가 확인한 실제 착석 증명은 아닙니다. 조회 시 기록할 시점이 된 예약·이동 이력을 반영할 수 있습니다.
+        예약 1건당 마지막 이용 좌석 1개를 기록합니다. 이동하면 같은 이력의 좌석과 used_at을 갱신합니다. 센서가 확인한 실제 착석 증명은 아닙니다. 연결을 확정할 수 없는 기존 과거 이력은 보존됩니다. 조회 시 기록할 시점이 된 예약·이동 이력을 반영할 수 있습니다.
       operationId: seat_history_me_seat_history_get
       security:
         - DemoSession: []
@@ -1434,6 +1434,77 @@ paths:
                 items:
                   $ref: '#/components/schemas/SeatHistory'
                 title: Response Seat History Me Seat History Get
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Unauthorized
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Not Found
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Conflict
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Unprocessable Content
+        '503':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Service Unavailable
+  /me/seat-history/summary:
+    get:
+      tags:
+        - 내 정보·예약 조회
+      summary: 내 좌석별 이용 횟수·방·좌석번호 조회
+      description: |-
+        DemoSession에 연결된 본인의 이력을 좌석별로 집계합니다. seat_id·room_id·room_name·seat_number·usage_count를 반환합니다. 횟수 내림차순, 같은 횟수는 seat_id 오름차순이며 limit·offset을 지원합니다. 이력이 없으면 빈 배열입니다. 학번은 본문·쿼리로 받지 않고 로그인 토큰에서 가져옵니다.
+
+        새 방식의 예약은 마지막 이용 좌석 한 건만 집계하고 이동 이전 좌석은 제외합니다. 예약 삭제 후 보존된 이력도 포함합니다. 예약과 연결을 확정하지 못해 보존된 과거 이력은 그대로 집계하므로 과거 이동을 완전히 소급 제외하지는 못합니다. 실제 센서 착석 횟수는 아닙니다.
+      operationId: seat_usage_summary_me_seat_history_summary_get
+      security:
+        - DemoSession: []
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            maximum: 500
+            minimum: 1
+            default: 100
+            title: Limit
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+            maximum: 9223372036854776000
+            minimum: 0
+            default: 0
+            title: Offset
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SeatUsageSummary'
+                title: Response Seat Usage Summary Me Seat History Summary Get
         '401':
           content:
             application/json:
@@ -2619,6 +2690,31 @@ components:
         - seat_id
         - used_at
       title: SeatHistory
+    SeatUsageSummary:
+      properties:
+        seat_id:
+          type: integer
+          title: Seat Id
+        room_id:
+          type: integer
+          title: Room Id
+        room_name:
+          type: string
+          title: Room Name
+        seat_number:
+          type: string
+          title: Seat Number
+        usage_count:
+          type: integer
+          title: Usage Count
+      type: object
+      required:
+        - seat_id
+        - room_id
+        - room_name
+        - seat_number
+        - usage_count
+      title: SeatUsageSummary
     UserIdentity:
       properties:
         s_id:
@@ -2725,7 +2821,7 @@ tags:
   - name: 사용자 등록·인증
     description: 프로필 등록, 시연용 학번 로그인과 로그아웃. 실제 학생 신원 인증은 아닙니다.
   - name: 내 정보·예약 조회
-    description: DemoSession으로 내 프로필·IN_USE 예약·독립 이용 좌석 이력을 조회합니다.
+    description: DemoSession으로 내 프로필·IN_USE 예약·독립 이용 좌석 이력과 방·좌석번호별 이용 횟수를 조회합니다.
   - name: 예약 등록·변경
     description: 예정 예약은 이동·취소, 사용 중 예약은 연장·이동·종료를 허용합니다. 만료·취소·종료 예약은 변경할 수 없고 같은 취소·종료의 반복은 기존 결과를 반환합니다. 임의 시간 수정은 관리자 API에서 처리합니다. DemoSession이 필요하며 변경은 본인 예약만 허용합니다.
   - name: ESP32 상태 통신
